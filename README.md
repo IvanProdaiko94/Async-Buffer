@@ -1,6 +1,12 @@
 **AsyncBuffer** 
 
 AsyncBuffer is used for async tasks accumulation and calling them sequentially after buffer limit will be exceeded.
+AsyncBuffer starts its operation automatically just task limit is reached.
+
+For example one can use this package to work with database.
+Imagine you can use http server working and on each request you must push some info to database.
+Instead of doing it each time you can push task to buffer and writing to database will start after limit is exceeded.
+
 Each task is provided with callback as first parameter. It must be called to proceed operation.
 You can optionally pass a parameter to the callback and it will be treated as a result of the task and stored inside `results` array.
 Second parameter in task is result if previous task (if no parameter provided `null` will be pushed to `results` array).
