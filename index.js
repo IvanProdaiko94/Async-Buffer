@@ -8,18 +8,19 @@ const Observable = require('@nodeart/observable');
 
 function AsyncBuffer(AsyncBufferLimit) {
     this.stack = [];
+    this.results = [];
     this.limit = AsyncBufferLimit;
     this.process = false;
-    this.results = [];
     Observable.call(this);
 }
 
 AsyncBuffer.prototype = Observable.prototype;
 AsyncBuffer.prototype.constructor = AsyncBuffer;
 
-AsyncBuffer.prototype.callback = function (result) {
-    if (result) this.results.push(result);
-    this.stack.length > 0 ? this.pop() : this.emit('drain', this.results).process = false;
+AsyncBuffer.prototype.callback = function (result = null) {
+    this.results.push(result);
+    this.stack.length > 0 ? this.pop() : this.emit('drain', this.results);
+    this.process = false;
     return this;
 };
 
@@ -30,7 +31,6 @@ AsyncBuffer.prototype.push = function (...tasks) {
     } else if (this.stack.length >= 1000) {
         setImmediate(() => this.drainAsyncBuffer());
     }
-    return this;
 };
 
 AsyncBuffer.prototype.drainAsyncBuffer = function () {
@@ -39,32 +39,16 @@ AsyncBuffer.prototype.drainAsyncBuffer = function () {
         func();
         this.process = true;
     }
-    return this;
 };
 
 AsyncBuffer.prototype.pop = function () {
-    let task = this.stack.pop();
+    let task = this.stack.pop(),
+        res = this.results;
     if (typeof task === 'function') {
-        task(this.callback.bind(this));
+        task(this.callback.bind(this), res[res.length - 1]);
+    } else {
+        throw new Error('task must be a function')
     }
-    return this;
 };
 
 module.exports = AsyncBuffer;
-
-let x = new AsyncBuffer(4),
-    counter = 0;
-
-x.on('drain', function (results) {
-    console.log('I was drained', results);
-});
-
-for (let i = 0; i < 5; i++) {
-    x.push(function(cb) {
-        setTimeout(function () {
-            counter += 1;
-            console.log(`I was called ${counter} times`);
-            cb(counter);
-        }, 1000)
-    });
-}
