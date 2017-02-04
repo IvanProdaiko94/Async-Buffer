@@ -1,0 +1,23 @@
+{
+  "name": "async-buffer",
+  "version": "1.0.0",
+  "description": "Buffer that collects async tasks and starts making tham sequentially after limit exceeded",
+  "main": "index.js",
+  "scripts": {
+    "start" : "node ./index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IvanProdaiko94/Async-Buffer.git"
+  },
+  "author": "Ivan Prodaiko",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/IvanProdaiko94/Async-Buffer/issues"
+  },
+  "homepage": "https://github.com/IvanProdaiko94/Async-Buffer#readme",
+  "dependencies": {
+    "@nodeart/observable": "^1.0.4"
+  }
+}
