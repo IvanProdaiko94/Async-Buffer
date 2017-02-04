@@ -1,7 +1,7 @@
 {
   "name": "@nodeart/async-buffer",
   "version": "1.0.0",
-  "description": "Buffer that collects async tasks and starts making tham sequentially after limit exceeded",
+  "description": "Buffer that collects async tasks and starts making them sequentially after limit exceeded",
   "main": "index.js",
   "scripts": {
     "start" : "node ./index.js",
