@@ -61,10 +61,11 @@ x.on('drain', function (results) {
 });
 ```
 
-If you need to :
-1. start tasks execution before the limit will be exceeded use `drainBuffer` function.
-2. clear tasks stack use `clearTasksStack` function.
-3. drain buffer before process will exit you can use monkey patch provided in this package like that:
+If you need to:
+
+1. Start tasks execution before the limit will be exceeded use `drainBuffer` function.
+2. Clear tasks stack use `clearTasksStack` function.
+3. Drain buffer before process will exit you can use monkey patch provided in this package like that:
 ```javascript
 monkeyPatch(function (exit) {
     return function () {
