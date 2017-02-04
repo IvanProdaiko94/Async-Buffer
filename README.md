@@ -28,7 +28,7 @@ buffer.push(function(cb) {
 });
 ```
 
-It is necessary to mention that tasks execution is started asynchronously using `setTimeout(fn, 0)` to push in the end of queue. 
+It is necessary to mention that tasks execution is started asynchronously using `setTimeout(fn, 0)` to be pushed in the end of queue. 
 
 `push` method supports multiple parameters, so you can provide several tasks like so:
 ```javascript
