@@ -1,12 +1,12 @@
 /**
  * Created by Ivan on 02.02.2017.
  * AsyncBuffer constructor;
- * It is used for accumulation of async tasks and calling them sequentially after AsyncBuffer limit will be exited;
+ * It is used for accumulation of async tasks and calling them sequentially after AsyncBuffer limit will be exceeded;
  */
 "use strict";
 const Observable = require('@nodeart/observable');
 
-function AsyncBuffer(AsyncBufferLimit, criticalLimit = 1000) {
+function AsyncBuffer(AsyncBufferLimit = 50, criticalLimit = 1000) {
     this.limit = AsyncBufferLimit;
     this.criticalLimit = criticalLimit;
     this.stack = [];
@@ -32,13 +32,13 @@ AsyncBuffer.prototype.callback = function (result = null) {
 AsyncBuffer.prototype.push = function (...tasks) {
     this.stack = this.stack.concat(tasks);
     if (this.stack.length >= this.limit) {
-        setTimeout(() => this.drainAsyncBuffer(), 0);
+        setTimeout(() => this.drainBuffer(), 0);
     } else if (this.stack.length >= this.criticalLimit) {
-        setImmediate(() => this.drainAsyncBuffer());
+        setImmediate(() => this.drainBuffer());
     }
 };
 
-AsyncBuffer.prototype.drainAsyncBuffer = function () {
+AsyncBuffer.prototype.drainBuffer = function () {
     if (!this.process) {
         this.emit('start');
         this.pop();
@@ -56,7 +56,7 @@ AsyncBuffer.prototype.pop = function () {
     }
 };
 
-AsyncBuffer.prototype.clearStack = function () {
+AsyncBuffer.prototype.clearTasksStack = function () {
     this.stack = [];
 };
 
