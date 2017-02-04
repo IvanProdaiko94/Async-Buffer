@@ -21,7 +21,6 @@ AsyncBuffer.prototype.callback = function (result = null) {
     this.results.push(result);
     this.stack.length > 0 ? this.pop() : this.emit('drain', this.results);
     this.process = false;
-    return this;
 };
 
 AsyncBuffer.prototype.push = function (...tasks) {
@@ -34,9 +33,9 @@ AsyncBuffer.prototype.push = function (...tasks) {
 };
 
 AsyncBuffer.prototype.drainAsyncBuffer = function () {
-    let func = () => this.emit('start').pop();
     if (!this.process) {
-        func();
+        this.emit('start');
+        this.pop();
         this.process = true;
     }
 };
