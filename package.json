@@ -19,5 +19,11 @@
   "homepage": "https://github.com/IvanProdaiko94/Async-Buffer#readme",
   "dependencies": {
     "@nodeart/observable": "^1.0.4"
-  }
+  },
+  "keywords": [
+    "async",
+    "nodeart",
+    "buffer",
+    "monkey patch"
+  ]
 }
