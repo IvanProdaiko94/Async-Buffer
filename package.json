@@ -1,7 +1,7 @@
 {
   "name": "@nodeart/async-buffer",
-  "version": "1.0.3",
-  "description": "AsyncBuffer is used for async tasks accumulation and calling them sequentially after buffer limit will be exceeded. AsyncBuffer starts its operation automatically just task limit is reached.",
+  "version": "1.0.5",
+  "description": "AsyncBuffer is used for async tasks accumulation and calling them sequentially after buffer limit will be exceeded. By default AsyncBuffer starts its operation automatically just after tasks limit is reached.",
   "main": "index.js",
   "scripts": {
     "start" : "node ./index.js",

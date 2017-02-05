@@ -1,7 +1,7 @@
 **AsyncBuffer** 
 
 AsyncBuffer is used for async tasks accumulation and calling them sequentially after buffer limit will be exceeded.
-AsyncBuffer starts its operation automatically just task limit is reached.
+By default AsyncBuffer starts its operation automatically just after tasks limit is reached.
 
 For example one can use this package to work with database.
 Imagine you can use http server working and on each request you must push some info to database.
@@ -23,6 +23,23 @@ buffer.on('drain', function (results) {
 buffer.push(function(cb) {
     setTimeout(function () {
         console.log(`I was called times`);
+        cb('result');
+    }, 1000)
+});
+```
+
+You can switch off auto execution by setting second parameter in constructor to `false` and start task execution manually.
+```javascript
+let buffer = new AsyncBuffer(1, false);
+
+buffer.on('stack_filled', function () {
+    console.log('Stack is filled');
+    buffer.drainBuffer();
+});
+
+buffer.push(function(cb) {
+    setTimeout(function () {
+        console.log(`I was called`);
         cb('result');
     }, 1000)
 });

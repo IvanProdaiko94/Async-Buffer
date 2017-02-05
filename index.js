@@ -6,9 +6,10 @@
 "use strict";
 const Observable = require('@nodeart/observable');
 
-function AsyncBuffer(AsyncBufferLimit = 50, criticalLimit = 1000) {
+function AsyncBuffer(AsyncBufferLimit = 50, autoStart = true, criticalLimit = 1000) {
     this.limit = AsyncBufferLimit;
     this.criticalLimit = criticalLimit;
+    this.autostart = autoStart;
     this.stack = [];
     this.results = [];
     this.process = false;
@@ -32,7 +33,9 @@ AsyncBuffer.prototype.callback = function (result = null) {
 AsyncBuffer.prototype.push = function (...tasks) {
     this.stack = this.stack.concat(tasks);
     if (this.stack.length >= this.limit) {
-        setTimeout(() => this.drainBuffer(), 0);
+        this.autostart ?
+            setTimeout(() => this.drainBuffer(), 0) :
+            this.emit('stack_filled');
     } else if (this.stack.length >= this.criticalLimit) {
         setImmediate(() => this.drainBuffer());
     }
@@ -48,7 +51,7 @@ AsyncBuffer.prototype.drainBuffer = function () {
 
 AsyncBuffer.prototype.pop = function () {
     let task = this.stack.pop(),
-        res = this.results;
+        res  = this.results;
     if (typeof task === 'function') {
         task(this.callback.bind(this), res[res.length - 1]);
     } else {
