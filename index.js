@@ -31,9 +31,6 @@ AsyncBuffer.prototype.callback = function (result = null) {
 };
 
 AsyncBuffer.prototype.push = function (...tasks) {
-    if (tasks.some(elem => typeof elem !== 'function')) {
-        throw new Error('task must be a function');
-    }
     this.stack = this.stack.concat(tasks);
     if (this.stack.length >= this.limit) {
         this.autostart ?
