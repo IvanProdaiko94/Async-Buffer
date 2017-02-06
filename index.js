@@ -22,7 +22,7 @@ AsyncBuffer.prototype.constructor = AsyncBuffer;
 AsyncBuffer.prototype.callback = function (result = null) {
     this.results.push(result);
     if (this.stack.length > 0) {
-        this.pop()
+        this.pop();
     } else {
         this.emit('drain', this.results);
         this.results = [];
@@ -31,6 +31,9 @@ AsyncBuffer.prototype.callback = function (result = null) {
 };
 
 AsyncBuffer.prototype.push = function (...tasks) {
+    if (tasks.some(elem => typeof elem !== 'function')) {
+        throw new Error('task must be a function');
+    }
     this.stack = this.stack.concat(tasks);
     if (this.stack.length >= this.limit) {
         this.autostart ?
@@ -42,7 +45,7 @@ AsyncBuffer.prototype.push = function (...tasks) {
 };
 
 AsyncBuffer.prototype.drainBuffer = function () {
-    if (!this.process) {
+    if (!this.process && this.stack.length > 0) {
         this.emit('start');
         this.pop();
         this.process = true;
@@ -52,11 +55,8 @@ AsyncBuffer.prototype.drainBuffer = function () {
 AsyncBuffer.prototype.pop = function () {
     let task = this.stack.pop(),
         res  = this.results;
-    if (typeof task === 'function') {
-        task(this.callback.bind(this), res[res.length - 1]);
-    } else {
-        throw new Error('task must be a function')
-    }
+
+    task(this.callback.bind(this), res[res.length - 1]);
 };
 
 AsyncBuffer.prototype.clearTasksStack = function () {
