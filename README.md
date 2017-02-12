@@ -67,11 +67,11 @@ buffer.push(buffer, [task, task, task]);
 Also you there is two events that are used to notify about starting and ending of operation (`'start'` and `'drain'` respectively).
 `'drain'` event callback is provided with results of operation as a first parameter.
 ```javascript
-x.on('start', function () {
+buffer.on('start', function () {
     console.log('Execution is strted', );
 });
 
-x.on('drain', function (results) {
+buffer.on('drain', function (results) {
     console.log('I was drained', results);
 }, function(results) {
     console.log('Really drained', resluts);
@@ -86,8 +86,8 @@ If you need to:
 ```javascript
 monkeyPatch(function (exit) {
     return function () {
-        x.on('drain', () => exit());
-        x.drainAsyncBuffer();
+        buffer.on('drain', () => exit());
+        buffer.drainAsyncBuffer();
     }
 });
 ```
