@@ -6,58 +6,58 @@
 "use strict";
 const Observable = require('@nodeart/observable');
 
-function AsyncBuffer(AsyncBufferLimit = 50, autoStart = true, criticalLimit = 1000) {
-    this.limit = AsyncBufferLimit;
-    this.criticalLimit = criticalLimit;
-    this.autostart = autoStart;
-    this.stack = [];
-    this.results = [];
-    this.process = false;
-    Observable.call(this);
-}
+module.exports = (function () {
 
-AsyncBuffer.prototype = Observable.prototype;
-AsyncBuffer.prototype.constructor = AsyncBuffer;
+    const callback = function (result = null) {
+        this.results.push(result);
+        if (this.stack.length > 0) {
+            this.pop();
+        } else {
+            this.process = false;
+            this.emit('drain', this.results);
+            this.results = [];
+        }
+    };
 
-AsyncBuffer.prototype.callback = function (result = null) {
-    this.results.push(result);
-    if (this.stack.length > 0) {
-        this.pop();
-    } else {
-        this.emit('drain', this.results);
+    function AsyncBuffer(AsyncBufferLimit = 50, autoStart = true) {
+        this.limit = AsyncBufferLimit;
+        this.autostart = autoStart;
+        this.stack = [];
         this.results = [];
         this.process = false;
+        Observable.call(this);
     }
-};
 
-AsyncBuffer.prototype.push = function (...tasks) {
-    this.stack = this.stack.concat(tasks);
-    if (this.stack.length >= this.limit) {
-        this.autostart ?
-            setTimeout(() => this.drainBuffer(), 0) :
-            this.emit('stack_filled');
-    } else if (this.stack.length >= this.criticalLimit) {
-        setImmediate(() => this.drainBuffer());
-    }
-};
+    AsyncBuffer.prototype = Observable.prototype;
+    AsyncBuffer.prototype.constructor = AsyncBuffer;
 
-AsyncBuffer.prototype.drainBuffer = function () {
-    if (!this.process && this.stack.length > 0) {
-        this.emit('start');
-        this.pop();
-        this.process = true;
-    }
-};
+    AsyncBuffer.prototype.push = function (...tasks) {
+        this.stack = this.stack.concat(tasks);
+        if (this.stack.length >= this.limit) {
+            this.autostart ?
+                setTimeout(() => this.drainBuffer(), 0) :
+                this.emit('stack_filled');
+        }
+    };
 
-AsyncBuffer.prototype.pop = function () {
-    let task = this.stack.pop(),
-        res  = this.results;
+    AsyncBuffer.prototype.drainBuffer = function () {
+        if (!this.process && this.stack.length > 0) {
+            this.emit('start');
+            this.pop();
+            this.process = true;
+        }
+    };
 
-    task(this.callback.bind(this), res[res.length - 1]);
-};
+    AsyncBuffer.prototype.pop = function () {
+        let task = this.stack.pop(),
+            res  = this.results;
 
-AsyncBuffer.prototype.clearTasksStack = function () {
-    this.stack = [];
-};
+        task(callback.bind(this), res[res.length - 1]);
+    };
 
-module.exports = AsyncBuffer;
+    AsyncBuffer.prototype.clearTasksStack = function () {
+        this.stack = [];
+    };
+
+    return AsyncBuffer;
+})();
