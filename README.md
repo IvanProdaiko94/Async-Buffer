@@ -68,7 +68,7 @@ Also you there is two events that are used to notify about starting and ending o
 `'drain'` event callback is provided with results of operation as a first parameter.
 ```javascript
 buffer.on('start', function () {
-    console.log('Execution is strted', );
+    console.log('Execution is started');
 });
 
 buffer.on('drain', function (results) {
