@@ -84,7 +84,7 @@ If you need to:
 ```javascript
 buffer.on('stop', function(currentResults) {
     console.log(`Execution has been stopped. Here is results ${currentResults}`);
-    \\continue execution
+    //continue execution
     buffer.drainBuffer();
 })
 ```
