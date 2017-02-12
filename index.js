@@ -26,8 +26,8 @@ AsyncBuffer.prototype.callback = function (result = null) {
     } else {
         this.emit('drain', this.results);
         this.results = [];
+        this.process = false;
     }
-    this.process = false;
 };
 
 AsyncBuffer.prototype.push = function (...tasks) {
