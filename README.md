@@ -2,6 +2,7 @@
 
 AsyncBuffer is used for async tasks accumulation and calling them sequentially after buffer limit will be exceeded.
 By default AsyncBuffer starts its operation automatically just after tasks limit is reached.
+AsyncBuffer can be used in browser as well as in Node.
 
 For example one can use this package to work with database.
 Imagine you can use http server working and on each request you must push some info to database.
@@ -45,8 +46,6 @@ buffer.push(function(cb) {
 });
 ```
 
-It is necessary to mention that tasks execution is started asynchronously using `setTimeout(fn, 0)` to be pushed in the end of queue. 
-
 `push` method supports multiple parameters, so you can provide several tasks like so:
 ```javascript
 let buffer = new AsyncBuffer(),
@@ -58,7 +57,6 @@ let buffer = new AsyncBuffer(),
            }
 buffer.push(task, task, task);
 ```
-
 or by using of `apply`
 ```javascript
 buffer.push(buffer, [task, task, task]);
@@ -80,14 +78,22 @@ buffer.on('drain', function (results) {
 
 If you need to:
 
-1. Start tasks execution before the limit will be exceeded use `drainBuffer` function.
+1. Start tasks execution before the limit will be exceeded or if second parameter in constructor was `false` use `drainBuffer` function.
 2. Clear tasks stack use `clearTasksStack` function.
-3. Drain buffer before process will exit you can use monkey patch provided in this package like that:
+3. Stop execution at some moment of time use `stopExecution` function. Buffer will handle all tasks that was executed, but will not trigger next. Example:
+```javascript
+buffer.on('stop', function(currentResults) {
+    console.log(`Execution has been stopped. Here is results ${currentResults}`);
+    \\continue execution
+    buffer.drainBuffer();
+})
+```
+4. Drain buffer before process will exit you can use monkey patch provided in this package like that:
 ```javascript
 monkeyPatch(function (exit) {
     return function () {
         buffer.on('drain', () => exit());
-        buffer.drainAsyncBuffer();
+        buffer.drainBuffer();
     }
 });
 ```
