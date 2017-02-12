@@ -6,12 +6,16 @@
 "use strict";
 const Observable = require('@nodeart/observable');
 
-module.exports = (function () {
-
-    const callback = function (result = null) {
+const AsyncBuffer = (function () {
+    const callback = function (result) {
         this.results.push(result);
         if (this.stack.length > 0) {
-            this.pop();
+            if (this.stopped) {
+                this.process = false;
+                this.emit('stop', this.results);
+            } else {
+                this.pop();
+            }
         } else {
             this.process = false;
             this.emit('drain', this.results);
@@ -24,6 +28,7 @@ module.exports = (function () {
         this.autostart = autoStart;
         this.stack = [];
         this.results = [];
+        this.stopped = false;
         this.process = false;
         Observable.call(this);
     }
@@ -34,17 +39,16 @@ module.exports = (function () {
     AsyncBuffer.prototype.push = function (...tasks) {
         this.stack = this.stack.concat(tasks);
         if (this.stack.length >= this.limit) {
-            this.autostart ?
-                setTimeout(() => this.drainBuffer(), 0) :
-                this.emit('stack_filled');
+            this.autostart ? this.drainBuffer() : this.emit('stack_filled');
         }
     };
 
     AsyncBuffer.prototype.drainBuffer = function () {
         if (!this.process && this.stack.length > 0) {
+            this.stopped = false;
+            this.process = true;
             this.emit('start');
             this.pop();
-            this.process = true;
         }
     };
 
@@ -57,6 +61,10 @@ module.exports = (function () {
 
     AsyncBuffer.prototype.clearTasksStack = function () {
         this.stack = [];
+    };
+
+    AsyncBuffer.prototype.stopExecution = function () {
+        this.stopped = true;
     };
 
     return AsyncBuffer;
