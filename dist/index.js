@@ -18,86 +18,84 @@
          */
         "use strict";
 
-        var Observable = function () {
-            function Observable() {
-                Object.defineProperty(this, 'subscriptions', { value: {} });
+        var handler = function handler(once, eventName) {
+            return function () {
+                for (var _len = arguments.length, fns = Array(_len), _key = 0; _key < _len; _key++) {
+                    fns[_key] = arguments[_key];
+                }
+
+                var handlersList = this.subscriptions[eventName] || [],
+                    newHandlers = fns.map(function (func) {
+                    return { func: func, once: once };
+                });
+                this.subscriptions[eventName] = handlersList.concat(newHandlers);
+                return this;
+            };
+        };
+
+        function Observable() {
+            this.subscriptions = {};
+        }
+
+        Observable.prototype.constructor = Observable;
+
+        Observable.prototype.emit = function (eventName) {
+            var _this = this;
+
+            for (var _len2 = arguments.length, args = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+                args[_key2 - 1] = arguments[_key2];
             }
 
-            Observable.prototype.constructor = Observable;
+            var handlersList = this.subscriptions[eventName];
+            if (!handlersList) return this;
+            handlersList.forEach(function (handler) {
+                handler.func.apply(_this, args);
+                if (handler.once) _this.unbind(eventName, handler.func);
+            });
+            return this;
+        };
 
-            Observable.prototype.getSubscriptions = function () {
-                return this.subscriptions;
-            };
+        Observable.prototype.on = function (eventName) {
+            for (var _len3 = arguments.length, fns = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
+                fns[_key3 - 1] = arguments[_key3];
+            }
 
-            Observable.prototype.on = function (eventName) {
-                for (var _len = arguments.length, fns = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-                    fns[_key - 1] = arguments[_key];
-                }
+            return handler(false, eventName).apply(this, fns);
+        };
 
-                var handlersList = this.subscriptions[eventName] || [],
-                    newHandlers = fns.map(function (func) {
-                    if (typeof func === 'function') return { func: func, once: false };else throw new Error('Handler must be a function');
-                });
-                this.subscriptions[eventName] = handlersList.concat(newHandlers);
-                return this;
-            };
+        Observable.prototype.once = function (eventName) {
+            for (var _len4 = arguments.length, fns = Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
+                fns[_key4 - 1] = arguments[_key4];
+            }
 
-            Observable.prototype.once = function (eventName) {
-                for (var _len2 = arguments.length, fns = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
-                    fns[_key2 - 1] = arguments[_key2];
-                }
+            return handler(true, eventName).apply(this, fns);
+        };
 
-                var handlersList = this.subscriptions[eventName] || [],
-                    newHandlers = fns.map(function (func) {
-                    if (typeof func === 'function') return { func: func, once: true };else throw new Error('Handler must be a function');
-                });
-                this.subscriptions[eventName] = handlersList.concat(newHandlers);
-                return this;
-            };
+        Observable.prototype.unbind = function (eventName) {
+            for (var _len5 = arguments.length, fns = Array(_len5 > 1 ? _len5 - 1 : 0), _key5 = 1; _key5 < _len5; _key5++) {
+                fns[_key5 - 1] = arguments[_key5];
+            }
 
-            Observable.prototype.unbind = function (eventName) {
-                for (var _len3 = arguments.length, fns = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
-                    fns[_key3 - 1] = arguments[_key3];
-                }
+            var handlersList = this.subscriptions[eventName];
+            if (!handlersList) return this;
 
-                var handlersList = this.subscriptions[eventName];
-                if (!handlersList) return this;
-                if (fns.length > 0) {
-                    this.subscriptions[eventName] = handlersList.filter(function (listener) {
-                        return !fns.includes(listener.func);
-                    });
-                } else {
-                    delete this.subscriptions[eventName];
-                }
-                return this;
-            };
+            fns.length > 0 ? this.subscriptions[eventName] = handlersList.filter(function (listener) {
+                return !fns.includes(listener.func);
+            }) : delete this.subscriptions[eventName];
 
-            Observable.prototype.unbindAll = function () {
-                this.subscriptions = [];
-                return this;
-            };
+            return this;
+        };
 
-            Observable.prototype.emit = function (eventName) {
-                var _this = this;
-
-                for (var _len4 = arguments.length, args = Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
-                    args[_key4 - 1] = arguments[_key4];
-                }
-
-                var handlersList = this.subscriptions[eventName];
-                if (!handlersList) return this;
-                handlersList.forEach(function (handler) {
-                    handler.func.apply(_this, args);
-                    if (handler.once) _this.unbind(eventName, handler.func);
-                });
-                return this;
-            };
-
-            return Observable;
-        }();
+        Observable.prototype.unbindAll = function () {
+            this.subscriptions = [];
+            return this;
+        };
 
         if (typeof module !== 'undefined' && module.exports) {
             module.exports = Observable;
+        }
+        if (typeof window !== 'undefined' && document) {
+            window.Observable = Observable;
         }
     }, {}], 2: [function (require, module, exports) {
         /**
@@ -108,22 +106,6 @@
         "use strict";
 
         var Observable = require('@nodeart/observable');
-
-        var callback = function callback(result) {
-            this.results.push(result);
-            if (this.stack.length > 0) {
-                if (this.stopped) {
-                    this.process = false;
-                    this.emit('stop', this.results);
-                } else {
-                    this.pop();
-                }
-            } else {
-                this.process = false;
-                this.emit('drain', this.results);
-                this.results = [];
-            }
-        };
 
         function AsyncBuffer() {
             var AsyncBufferLimit = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 50;
@@ -142,14 +124,15 @@
         AsyncBuffer.prototype.constructor = AsyncBuffer;
 
         AsyncBuffer.prototype.push = function () {
-            for (var _len5 = arguments.length, tasks = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
-                tasks[_key5] = arguments[_key5];
+            for (var _len6 = arguments.length, tasks = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+                tasks[_key6] = arguments[_key6];
             }
 
             this.stack = this.stack.concat(tasks);
             if (this.stack.length >= this.limit) {
                 this.autostart ? this.drainBuffer() : this.emit('stack_filled');
             }
+            return this;
         };
 
         AsyncBuffer.prototype.drainBuffer = function () {
@@ -159,21 +142,42 @@
                 this.emit('start');
                 this.pop();
             }
+            return this;
         };
 
         AsyncBuffer.prototype.pop = function () {
-            var task = this.stack.pop(),
-                res = this.results;
+            var _this2 = this;
 
-            task(callback.bind(this), res[res.length - 1]);
+            var callback = function callback(result) {
+                _this2.results.push(result);
+                if (_this2.stack.length > 0) {
+                    if (_this2.stopped) {
+                        _this2.process = false;
+                        _this2.emit('stop', _this2.results);
+                    } else {
+                        _this2.pop();
+                    }
+                } else {
+                    _this2.process = false;
+                    _this2.emit('drain', _this2.results);
+                    _this2.results = [];
+                }
+            };
+
+            var res = this.results;
+
+            this.stack.pop()(callback, res[res.length - 1]);
+            return this;
         };
 
         AsyncBuffer.prototype.clearTasksStack = function () {
             this.stack = [];
+            return this;
         };
 
         AsyncBuffer.prototype.stopExecution = function () {
             this.stopped = true;
+            return this;
         };
 
         if (typeof module !== 'undefined' && module.exports) {

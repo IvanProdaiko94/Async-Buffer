@@ -19,9 +19,7 @@ let buffer = new AsyncBuffer(4);
 
 buffer.on('drain', function (results) {
     console.log('I was drained', results);
-});
-
-buffer.push(function(cb) {
+}).push(function(cb) {
     setTimeout(function () {
         console.log(`I was called times`);
         cb('result');
@@ -30,50 +28,30 @@ buffer.push(function(cb) {
 ```
 
 You can switch off auto execution by setting second parameter in constructor to `false` and start task execution manually.
+Also `push` method supports multiple parameters, so you can provide several tasks like so:
 ```javascript
-let buffer = new AsyncBuffer(1, false);
-
+let buffer = new AsyncBuffer(5, false),
+    task = function(cb) {
+               setTimeout(function () {
+                   console.log(`I was called`);
+                   cb('result');
+               }, 1000)
+           };
 buffer.on('stack_filled', function () {
     console.log('Stack is filled');
     buffer.drainBuffer();
-});
-
-buffer.push(function(cb) {
-    setTimeout(function () {
-        console.log(`I was called`);
-        cb('result');
-    }, 1000)
-});
-```
-
-`push` method supports multiple parameters, so you can provide several tasks like so:
-```javascript
-let buffer = new AsyncBuffer(),
-    task = function(cb) {
-               setTimeout(function () {
-                   console.log(`I was called times`);
-                   cb('result');
-               }, 1000)
-           }
-buffer.push(task, task, task);
+}).push(task, task, task, task, task);
 ```
 or by using of `apply`
 ```javascript
 buffer.push(buffer, [task, task, task]);
 ```
-
 Also you there is two events that are used to notify about starting and ending of operation (`'start'` and `'drain'` respectively).
 `'drain'` event callback is provided with results of operation as a first parameter.
 ```javascript
-buffer.on('start', function () {
-    console.log('Execution is started');
-});
-
-buffer.on('drain', function (results) {
-    console.log('I was drained', results);
-}, function(results) {
-    console.log('Really drained', resluts);
-});
+buffer.on('start', ()      => console.log('Execution is started'))
+      .on('drain', results => console.log('I was drained', results), 
+                   results => console.log('Really drained', results));
 ```
 
 If you need to:
@@ -92,8 +70,8 @@ buffer.on('stop', function(currentResults) {
 ```javascript
 monkeyPatch(function (exit) {
     return function () {
-        buffer.on('drain', () => exit());
-        buffer.drainBuffer();
+        buffer.on('drain', () => exit())
+              .drainBuffer();
     }
 });
 ```

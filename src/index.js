@@ -6,22 +6,6 @@
 "use strict";
 const Observable = require('@nodeart/observable');
 
-const callback = function (result) {
-    this.results.push(result);
-    if (this.stack.length > 0) {
-        if (this.stopped) {
-            this.process = false;
-            this.emit('stop', this.results);
-        } else {
-            this.pop();
-        }
-    } else {
-        this.process = false;
-        this.emit('drain', this.results);
-        this.results = [];
-    }
-};
-
 function AsyncBuffer(AsyncBufferLimit = 50, autoStart = true) {
     this.limit = AsyncBufferLimit;
     this.autostart = autoStart;
@@ -40,6 +24,7 @@ AsyncBuffer.prototype.push = function (...tasks) {
     if (this.stack.length >= this.limit) {
         this.autostart ? this.drainBuffer() : this.emit('stack_filled');
     }
+    return this;
 };
 
 AsyncBuffer.prototype.drainBuffer = function () {
@@ -49,21 +34,40 @@ AsyncBuffer.prototype.drainBuffer = function () {
         this.emit('start');
         this.pop();
     }
+    return this;
 };
 
 AsyncBuffer.prototype.pop = function () {
-    let task = this.stack.pop(),
-        res  = this.results;
+    const callback = result => {
+        this.results.push(result);
+        if (this.stack.length > 0) {
+            if (this.stopped) {
+                this.process = false;
+                this.emit('stop', this.results);
+            } else {
+                this.pop();
+            }
+        } else {
+            this.process = false;
+            this.emit('drain', this.results);
+            this.results = [];
+        }
+    };
 
-    task(callback.bind(this), res[res.length - 1]);
+    let res = this.results;
+
+    this.stack.pop()(callback, res[res.length - 1]);
+    return this;
 };
 
 AsyncBuffer.prototype.clearTasksStack = function () {
     this.stack = [];
+    return this;
 };
 
 AsyncBuffer.prototype.stopExecution = function () {
     this.stopped = true;
+    return this;
 };
 
 if (typeof module !== 'undefined' && module.exports) {
