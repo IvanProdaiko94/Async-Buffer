@@ -53,6 +53,24 @@ buffer.on('start', ()      => console.log('Execution is started'))
       .on('drain', results => console.log('I was drained', results), 
                    results => console.log('Really drained', results));
 ```
+Also you can use `drainBufferParallel` method to replace sequential execution with parallel.
+After execution `chunk_done` event will be emitted and if no tasks were added during process `drain` event will be emitted as well.
+
+Example:
+```
+buffer.on('stop', () => console.log('stop'));
+buffer.on('stack_filled', () => console.log('stack_filled'));
+buffer.push(task, task, task, task, task)
+      .drainBuffer()
+      .once('drain', res => {
+    console.log('drained', res);
+    buffer.push(task, task, task, task, task)
+          .drainBufferParallel()
+          .push(task, task, task, task, task)
+          //.stopExecution()
+          .on('chunk_done', res => console.log('chunk_done', res));
+});
+```
 
 If you need to:
 
