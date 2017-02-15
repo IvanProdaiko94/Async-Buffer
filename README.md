@@ -15,16 +15,17 @@ Default stack capacity is 50 tasks.
 
 Basic usage:
 ```javascript
-let buffer = new AsyncBuffer(4);
+let buffer = new AsyncBuffer(4),
+    task   = function(cb) {
+               setTimeout(function () {
+                   console.log(`I was called`);
+                   cb('result');
+               }, 1000)
+             };
 
 buffer.on('drain', function (results) {
     console.log('I was drained', results);
-}).push(function(cb) {
-    setTimeout(function () {
-        console.log(`I was called times`);
-        cb('result');
-    }, 1000)
-});
+}).push(task);
 ```
 
 You can switch off auto execution by setting second parameter in constructor to `false` and start task execution manually.
@@ -58,18 +59,18 @@ After execution `chunk_done` event will be emitted and if no tasks were added du
 
 Example:
 ```
-buffer.on('stop', () => console.log('stop'));
-buffer.on('stack_filled', () => console.log('stack_filled'));
-buffer.push(task, task, task, task, task)
+let buffer = new AsyncBuffer(10, false);
+buffer.on('stop', () => console.log('stop'))
+      .push(task, task, task, task, task)
       .drainBuffer()
-      .once('drain', res => {
-    console.log('drained', res);
-    buffer.push(task, task, task, task, task)
-          .drainBufferParallel()
-          .push(task, task, task, task, task)
-          //.stopExecution()
-          .on('chunk_done', res => console.log('chunk_done', res));
-});
+      .once('drain', res => {                           // wait till all sequential tasks will be executed;
+          console.log('drained', res);
+          buffer.push(task, task, task, task, task) 
+                 .drainBufferParallel()                 // execute these tasks parallel;
+                 .push(task, task, task, task, task)    // add another chunk;
+                 .stopExecution()                       // stop execution (only first five tasks will be executed);
+                 .on('chunk_done', res => console.log('chunk_done', res)); // get results of first five tasks;
+      });
 ```
 
 If you need to:
