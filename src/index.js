@@ -65,9 +65,9 @@ AsyncBuffer.prototype.drainBufferParallel = function () {
                 if (count === 0) {
                     this.process = false;
                     this.emit('chunk_done', results);
-                    if (!this.stopped) {
+                    this.stopped ?
+                        this.emit('stop', result) :
                         this.drainBufferParallel();
-                    }
                     if (this.stack.length === 0) {
                         this.emit('drain', results);
                     }
