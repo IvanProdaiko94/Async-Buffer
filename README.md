@@ -59,9 +59,9 @@ After execution `chunk_done` event will be emitted and if no tasks were added du
 
 Example:
 ```
-let buffer = new AsyncBuffer(10, false);
-buffer.on('stop', () => console.log('stop'))
-      .push(task, task, task, task, task)
+buffer.on('stop', () => console.log('stop'));
+buffer.on('stack_filled', () => console.log('stack_filled'));
+buffer.push(task, task, task, task, task)
       .drainBuffer()
       .once('drain', res => {                           // wait till all sequential tasks will be executed;
           console.log('drained', res);
