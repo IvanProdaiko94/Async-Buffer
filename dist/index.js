@@ -107,10 +107,12 @@
 
         var Observable = require('@nodeart/observable');
 
-        function AsyncBuffer() {
-            var AsyncBufferLimit = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 50;
+        function AsyncBuffer(AsyncBufferLimit) {
             var autoStart = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
 
+            if (!AsyncBufferLimit || typeof AsyncBufferLimit !== 'number') {
+                throw new Error('AsyncBufferLimit is required!');
+            }
             this.limit = AsyncBufferLimit;
             this.autostart = autoStart;
             this.stack = [];
@@ -136,37 +138,70 @@
         };
 
         AsyncBuffer.prototype.drainBuffer = function () {
+            var _this2 = this;
+
             if (!this.process && this.stack.length > 0) {
-                this.stopped = false;
-                this.process = true;
-                this.emit('start');
-                this.pop();
+                (function () {
+                    var callback = function callback(result) {
+                        _this2.results.push(result);
+                        if (_this2.stack.length > 0) {
+                            if (_this2.stopped) {
+                                _this2.process = false;
+                                _this2.emit('stop', _this2.results);
+                            } else {
+                                _this2.pop(callback);
+                            }
+                        } else {
+                            _this2.process = false;
+                            _this2.emit('drain', _this2.results);
+                            _this2.results = [];
+                        }
+                    };
+                    _this2.stopped = false;
+                    _this2.process = true;
+                    _this2.emit('start');
+                    _this2.pop(callback);
+                })();
             }
             return this;
         };
 
-        AsyncBuffer.prototype.pop = function () {
-            var _this2 = this;
+        AsyncBuffer.prototype.drainBufferParallel = function () {
+            var _this3 = this;
 
-            var callback = function callback(result) {
-                _this2.results.push(result);
-                if (_this2.stack.length > 0) {
-                    if (_this2.stopped) {
-                        _this2.process = false;
-                        _this2.emit('stop', _this2.results);
-                    } else {
-                        _this2.pop();
+            if (!this.process && this.stack.length > 0) {
+                (function () {
+                    var results = [],
+                        count = _this3.stack.length,
+                        callback = function callback(index) {
+                        return function (result) {
+                            results[index] = result;
+                            count -= 1;
+                            if (count === 0) {
+                                _this3.process = false;
+                                _this3.emit('chunk_done', results);
+                                _this3.stopped ? _this3.emit('stop', result) : _this3.drainBufferParallel();
+                                if (_this3.stack.length === 0) {
+                                    _this3.emit('drain', results);
+                                }
+                            }
+                        };
+                    };
+                    _this3.stopped = false;
+                    _this3.process = true;
+                    _this3.emit('start');
+                    for (var i = _this3.stack.length - 1; i >= 0; i--) {
+                        _this3.stack.pop()(callback(i));
                     }
-                } else {
-                    _this2.process = false;
-                    _this2.emit('drain', _this2.results);
-                    _this2.results = [];
-                }
-            };
+                })();
+            }
+            return this;
+        };
 
-            var res = this.results;
-
-            this.stack.pop()(callback, res[res.length - 1]);
+        AsyncBuffer.prototype.pop = function (callback) {
+            var res = this.results,
+                task = this.stack.pop();
+            task(callback, res[res.length - 1]);
             return this;
         };
 
