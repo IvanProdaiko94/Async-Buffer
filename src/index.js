@@ -6,7 +6,10 @@
 "use strict";
 const Observable = require('@nodeart/observable');
 
-function AsyncBuffer(AsyncBufferLimit = 50, autoStart = true) {
+function AsyncBuffer(AsyncBufferLimit, autoStart = true) {
+    if (!AsyncBufferLimit || typeof AsyncBufferLimit !== 'number') {
+        throw new Error('AsyncBufferLimit is required!');
+    }
     this.limit = AsyncBufferLimit;
     this.autostart = autoStart;
     this.stack = [];
@@ -29,34 +32,61 @@ AsyncBuffer.prototype.push = function (...tasks) {
 
 AsyncBuffer.prototype.drainBuffer = function () {
     if (!this.process && this.stack.length > 0) {
+        const callback = result => {
+            this.results.push(result);
+            if (this.stack.length > 0) {
+                if (this.stopped) {
+                    this.process = false;
+                    this.emit('stop', this.results);
+                } else {
+                    this.pop(callback);
+                }
+            } else {
+                this.process = false;
+                this.emit('drain', this.results);
+                this.results = [];
+            }
+        };
         this.stopped = false;
         this.process = true;
         this.emit('start');
-        this.pop();
+        this.pop(callback);
     }
     return this;
 };
 
-AsyncBuffer.prototype.pop = function () {
-    const callback = result => {
-        this.results.push(result);
-        if (this.stack.length > 0) {
-            if (this.stopped) {
-                this.process = false;
-                this.emit('stop', this.results);
-            } else {
-                this.pop();
-            }
-        } else {
-            this.process = false;
-            this.emit('drain', this.results);
-            this.results = [];
+AsyncBuffer.prototype.drainBufferParallel = function () {
+    if (!this.process && this.stack.length > 0) {
+        let results = [],
+            count = this.stack.length,
+            callback = index => result => {
+                results[index] = result;
+                count -= 1;
+                if (count === 0) {
+                    this.process = false;
+                    this.emit('chunk_done', results);
+                    if (!this.stopped) {
+                        this.drainBufferParallel();
+                    }
+                    if (this.stack.length === 0) {
+                        this.emit('drain', results);
+                    }
+                }
+            };
+        this.stopped = false;
+        this.process = true;
+        this.emit('start');
+        for (let i = this.stack.length - 1; i >= 0; i--) {
+            this.stack.pop()(callback(i));
         }
-    };
+    }
+    return this;
+};
 
-    let res = this.results;
-
-    this.stack.pop()(callback, res[res.length - 1]);
+AsyncBuffer.prototype.pop = function (callback) {
+    let res = this.results,
+        task = this.stack.pop();
+    task(callback, res[res.length - 1]);
     return this;
 };
 
