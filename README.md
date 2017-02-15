@@ -58,7 +58,7 @@ Also you can use `drainBufferParallel` method to replace sequential execution wi
 After execution `chunk_done` event will be emitted and if no tasks were added during process `drain` event will be emitted as well.
 
 Example:
-```
+```javascript
 buffer.on('stop', () => console.log('stop'))
       .push(task, task, task, task, task)
       .drainBuffer()
