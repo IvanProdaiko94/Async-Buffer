@@ -13,89 +13,79 @@
         s(r[o]);
     }return s;
 })({ 1: [function (require, module, exports) {
-        /**
-         * Created by Ivan on 18.11.2016.
-         */
         "use strict";
 
-        var handler = function handler(once, eventName) {
-            return function () {
-                for (var _len = arguments.length, fns = Array(_len), _key = 0; _key < _len; _key++) {
-                    fns[_key] = arguments[_key];
+        var subscribe = function subscribe(once) {
+            return function (eventName) {
+                for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+                    args[_key - 1] = arguments[_key];
                 }
 
-                var handlersList = this.subscriptions[eventName] || [],
-                    newHandlers = fns.map(function (func) {
-                    return { func: func, once: once };
-                });
-                this.subscriptions[eventName] = handlersList.concat(newHandlers);
+                this.events[eventName] = args.reduce(function (acc, fn) {
+                    acc.push({ fn: fn, once: once });
+                    return acc;
+                }, this.events[eventName] || []);
                 return this;
             };
-        };
+        },
+            on = subscribe(false),
+            once = subscribe(true);
 
-        function Observable() {
-            this.subscriptions = {};
+        function EventEmitter() {
+            this.events = {};
         }
 
-        Observable.prototype.constructor = Observable;
-
-        Observable.prototype.emit = function (eventName) {
-            var _this = this;
-
-            for (var _len2 = arguments.length, args = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
-                args[_key2 - 1] = arguments[_key2];
+        EventEmitter.prototype.on = function () {
+            for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+                args[_key2] = arguments[_key2];
             }
 
-            var handlersList = this.subscriptions[eventName];
-            if (!handlersList) return this;
-            handlersList.forEach(function (handler) {
-                handler.func.apply(_this, args);
-                if (handler.once) _this.unbind(eventName, handler.func);
+            return on.apply(this, args);
+        };
+
+        EventEmitter.prototype.once = function () {
+            for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+                args[_key3] = arguments[_key3];
+            }
+
+            return once.apply(this, args);
+        };
+
+        EventEmitter.prototype.emit = function (eventName) {
+            for (var _len4 = arguments.length, args = Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
+                args[_key4 - 1] = arguments[_key4];
+            }
+
+            if (!this.events[eventName]) return this;
+            this.events[eventName] = this.events[eventName].filter(function (elem) {
+                elem.fn.apply(elem, args);
+                return !elem.once;
             });
             return this;
         };
 
-        Observable.prototype.on = function (eventName) {
-            for (var _len3 = arguments.length, fns = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
-                fns[_key3 - 1] = arguments[_key3];
-            }
-
-            return handler(false, eventName).apply(this, fns);
-        };
-
-        Observable.prototype.once = function (eventName) {
-            for (var _len4 = arguments.length, fns = Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
-                fns[_key4 - 1] = arguments[_key4];
-            }
-
-            return handler(true, eventName).apply(this, fns);
-        };
-
-        Observable.prototype.unbind = function (eventName) {
+        EventEmitter.prototype.off = function (eventName) {
             for (var _len5 = arguments.length, fns = Array(_len5 > 1 ? _len5 - 1 : 0), _key5 = 1; _key5 < _len5; _key5++) {
                 fns[_key5 - 1] = arguments[_key5];
             }
 
-            var handlersList = this.subscriptions[eventName];
-            if (!handlersList) return this;
-
-            fns.length > 0 ? this.subscriptions[eventName] = handlersList.filter(function (listener) {
-                return !fns.includes(listener.func);
-            }) : delete this.subscriptions[eventName];
-
+            if (!this.events[eventName]) return this;
+            fns.length > 0 ? this.events[eventName] = this.events[eventName].filter(function (listener) {
+                return !fns.includes(listener.fn);
+            }) : delete this.events[eventName];
             return this;
         };
 
-        Observable.prototype.unbindAll = function () {
-            this.subscriptions = [];
+        EventEmitter.prototype.offAll = function () {
+            this.events = {};
             return this;
         };
 
         if (typeof module !== 'undefined' && module.exports) {
-            module.exports = Observable;
+            module.exports = EventEmitter;
         }
         if (typeof window !== 'undefined' && document) {
-            window.Observable = Observable;
+            window.EventEmitter = EventEmitter;
         }
     }, {}], 2: [function (require, module, exports) {
         /**
@@ -105,7 +95,7 @@
          */
         "use strict";
 
-        var Observable = require('@nodeart/observable');
+        var EventEmitter = require('@nodeart/event_emitter');
 
         function AsyncBuffer(AsyncBufferLimit) {
             var autoStart = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
@@ -119,10 +109,10 @@
             this.results = [];
             this.stopped = false;
             this.process = false;
-            Observable.call(this);
+            EventEmitter.call(this);
         }
 
-        AsyncBuffer.prototype = Observable.prototype;
+        AsyncBuffer.prototype = EventEmitter.prototype;
         AsyncBuffer.prototype.constructor = AsyncBuffer;
 
         AsyncBuffer.prototype.push = function () {
@@ -138,62 +128,58 @@
         };
 
         AsyncBuffer.prototype.drainBuffer = function () {
-            var _this2 = this;
+            var _this = this;
 
             if (!this.process && this.stack.length > 0) {
-                (function () {
-                    var callback = function callback(result) {
-                        _this2.results.push(result);
-                        if (_this2.stack.length > 0) {
-                            if (_this2.stopped) {
-                                _this2.process = false;
-                                _this2.emit('stop', _this2.results);
-                            } else {
-                                _this2.pop(callback);
-                            }
+                var callback = function callback(result) {
+                    _this.results.push(result);
+                    if (_this.stack.length > 0) {
+                        if (_this.stopped) {
+                            _this.process = false;
+                            _this.emit('stop', _this.results);
                         } else {
-                            _this2.process = false;
-                            _this2.emit('drain', _this2.results);
-                            _this2.results = [];
+                            _this.pop(callback);
                         }
-                    };
-                    _this2.stopped = false;
-                    _this2.process = true;
-                    _this2.emit('start');
-                    _this2.pop(callback);
-                })();
+                    } else {
+                        _this.process = false;
+                        _this.emit('drain', _this.results);
+                        _this.results = [];
+                    }
+                };
+                this.stopped = false;
+                this.process = true;
+                this.emit('start');
+                this.pop(callback);
             }
             return this;
         };
 
         AsyncBuffer.prototype.drainBufferParallel = function () {
-            var _this3 = this;
+            var _this2 = this;
 
             if (!this.process && this.stack.length > 0) {
-                (function () {
-                    var results = [],
-                        count = _this3.stack.length,
-                        callback = function callback(index) {
-                        return function (result) {
-                            results[index] = result;
-                            count -= 1;
-                            if (count === 0) {
-                                _this3.process = false;
-                                _this3.emit('chunk_done', results);
-                                _this3.stopped ? _this3.emit('stop', result) : _this3.drainBufferParallel();
-                                if (_this3.stack.length === 0) {
-                                    _this3.emit('drain', results);
-                                }
+                var results = [],
+                    count = this.stack.length,
+                    callback = function callback(index) {
+                    return function (result) {
+                        results[index] = result;
+                        count -= 1;
+                        if (count === 0) {
+                            _this2.process = false;
+                            _this2.emit('chunk_done', results);
+                            _this2.stopped ? _this2.emit('stop', result) : _this2.drainBufferParallel();
+                            if (_this2.stack.length === 0) {
+                                _this2.emit('drain', results);
                             }
-                        };
+                        }
                     };
-                    _this3.stopped = false;
-                    _this3.process = true;
-                    _this3.emit('start');
-                    for (var i = _this3.stack.length - 1; i >= 0; i--) {
-                        _this3.stack.pop()(callback(i));
-                    }
-                })();
+                };
+                this.stopped = false;
+                this.process = true;
+                this.emit('start');
+                for (var i = this.stack.length - 1; i >= 0; i--) {
+                    this.stack.pop()(callback(i));
+                }
             }
             return this;
         };
@@ -221,4 +207,4 @@
         if (typeof window !== 'undefined' && document) {
             window.AsyncBuffer = AsyncBuffer;
         }
-    }, { "@nodeart/observable": 1 }] }, {}, [2]);
+    }, { "@nodeart/event_emitter": 1 }] }, {}, [2]);
