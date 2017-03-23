@@ -4,7 +4,7 @@
  * It is used for accumulation of async tasks and calling them sequentially after AsyncBuffer limit will be exceeded;
  */
 "use strict";
-const Observable = require('@nodeart/observable');
+const EventEmitter = require('@nodeart/event_emitter');
 
 function AsyncBuffer(AsyncBufferLimit, autoStart = true) {
     if (!AsyncBufferLimit || typeof AsyncBufferLimit !== 'number') {
@@ -16,10 +16,10 @@ function AsyncBuffer(AsyncBufferLimit, autoStart = true) {
     this.results = [];
     this.stopped = false;
     this.process = false;
-    Observable.call(this);
+    EventEmitter.call(this);
 }
 
-AsyncBuffer.prototype = Observable.prototype;
+AsyncBuffer.prototype = EventEmitter.prototype;
 AsyncBuffer.prototype.constructor = AsyncBuffer;
 
 AsyncBuffer.prototype.push = function (...tasks) {
