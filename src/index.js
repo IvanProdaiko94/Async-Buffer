@@ -25,7 +25,7 @@ AsyncBuffer.prototype.constructor = AsyncBuffer;
 AsyncBuffer.prototype.push = function (...tasks) {
     this.stack = this.stack.concat(tasks);
     if (this.stack.length >= this.limit) {
-        this.autostart ? this.drainBuffer() : this.emit('stack_filled');
+        this.autostart ? this.drainBuffer() : this.emit('stack_filled', this);
     }
     return this;
 };
@@ -37,19 +37,19 @@ AsyncBuffer.prototype.drainBuffer = function () {
             if (this.stack.length > 0) {
                 if (this.stopped) {
                     this.process = false;
-                    this.emit('stop', this.results);
+                    this.emit('stop', this, this.results);
                 } else {
                     this.pop(callback);
                 }
             } else {
                 this.process = false;
-                this.emit('drain', this.results);
+                this.emit('drain', this, this.results);
                 this.results = [];
             }
         };
         this.stopped = false;
         this.process = true;
-        this.emit('start');
+        this.emit('start', this);
         this.pop(callback);
     }
     return this;
@@ -64,18 +64,18 @@ AsyncBuffer.prototype.drainBufferParallel = function () {
                 count -= 1;
                 if (count === 0) {
                     this.process = false;
-                    this.emit('chunk_done', results);
+                    this.emit('chunk_done', this, results);
                     this.stopped ?
-                        this.emit('stop', result) :
+                        this.emit('stop', this, result) :
                         this.drainBufferParallel();
                     if (this.stack.length === 0) {
-                        this.emit('drain', results);
+                        this.emit('drain', this, results);
                     }
                 }
             };
         this.stopped = false;
         this.process = true;
-        this.emit('start');
+        this.emit('start', this);
         for (let i = this.stack.length - 1; i >= 0; i--) {
             this.stack.pop()(callback(i));
         }
